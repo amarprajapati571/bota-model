@@ -1,0 +1,21 @@
+dataset:
+  data_yaml: datasets/baccarat_v1/card_detection.yaml
+  image_size: 640
+
+model:
+  family: yolo
+  baseline_checkpoint: yolo_baseline.pt
+
+training:
+  epochs: 100
+  batch_size: 32
+  workers: 8
+  project: runs/card_detector
+  name: v1
+
+gates:
+  map50: 0.980
+  map75: 0.950
+  card_count_accuracy: 0.990
+  false_extra_card_rate: 0.005
+  missed_card_rate: 0.005

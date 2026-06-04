@@ -1,0 +1,6 @@
+card_window_frames: [8, 10, 15, 20]
+min_valid_votes: [4, 5, 8, 10]
+card_lock_confidence: [0.85, 0.90, 0.95]
+result_stable_seconds: [1.0, 1.5, 2.0]
+auto_publish_confidence: [0.88, 0.90, 0.92, 0.95]
+round_timeout_seconds: [75, 90, 105]

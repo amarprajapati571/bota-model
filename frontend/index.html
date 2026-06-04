@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Baccarat Live Monitor</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="identity">
+          <span class="table-id" id="tableId">MD3212</span>
+          <span class="stream-id" id="streamId">stream_MD3212_live</span>
+        </div>
+        <div class="status-strip">
+          <span class="status-pill" id="streamStatus">connecting</span>
+          <span id="clockText">--:--:--</span>
+          <span id="roundState">WAITING_FOR_ROUND</span>
+          <span id="lastEventAge">0s</span>
+        </div>
+        <div class="toolbar">
+          <button class="icon-button" id="pauseButton" type="button" title="Pause event stream">II</button>
+          <button class="icon-button" id="debugButton" type="button" title="Toggle ROI overlay">[]</button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <section class="live-column">
+          <div class="video-stage" id="videoStage">
+            <video id="liveVideo" muted playsinline></video>
+            <canvas id="mockVideoCanvas" aria-hidden="true"></canvas>
+            <canvas id="overlayCanvas" aria-label="Live detection overlay"></canvas>
+            <div class="video-footer">
+              <span id="protocolLabel">WebRTC primary</span>
+              <span id="latencyLabel">video 0ms | ML 0ms</span>
+            </div>
+          </div>
+
+          <section class="timeline-band">
+            <div class="section-title">Recent Rounds</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Round</th>
+                    <th>Player</th>
+                    <th>Banker</th>
+                    <th>Total</th>
+                    <th>Winner</th>
+                    <th>Confidence</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recentRounds"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <aside class="side-panel">
+          <section class="panel-section">
+            <div class="section-title">Live Round</div>
+            <div class="metric-grid">
+              <div>
+                <span class="metric-label">Clock</span>
+                <strong id="clockMetric">--:--:--</strong>
+              </div>
+              <div>
+                <span class="metric-label">Confidence</span>
+                <strong id="confidenceMetric">0%</strong>
+              </div>
+              <div>
+                <span class="metric-label">Round</span>
+                <strong id="roundMetric">pending</strong>
+              </div>
+              <div>
+                <span class="metric-label">Status</span>
+                <strong id="roundStatusMetric">waiting</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-section hand-section">
+            <div class="hand-heading">
+              <span>Player</span>
+              <strong id="playerTotal">-</strong>
+            </div>
+            <div class="card-row" id="playerCards"></div>
+          </section>
+
+          <section class="panel-section hand-section">
+            <div class="hand-heading">
+              <span>Banker</span>
+              <strong id="bankerTotal">-</strong>
+            </div>
+            <div class="card-row" id="bankerCards"></div>
+          </section>
+
+          <section class="panel-section winner-section">
+            <span class="metric-label">Winner</span>
+            <strong id="winnerText">Pending</strong>
+          </section>
+
+          <section class="review-panel" id="reviewPanel">
+            <div class="section-title">Review Queue</div>
+            <div id="reviewMessage">Clear</div>
+          </section>
+
+          <section class="debug-panel">
+            <div class="section-title">Event Inspector</div>
+            <ol id="eventLog"></ol>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

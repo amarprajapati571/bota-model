@@ -1,0 +1,25 @@
+dataset:
+  labels: datasets/baccarat_v1/annotations/card_identity.csv
+  image_root: datasets/baccarat_v1
+  crop_column: corner_crop_path
+  split_column: split
+
+model:
+  backbone: efficientnet_b0
+  input_size: 224
+  heads:
+    rank_classes: [A, "2", "3", "4", "5", "6", "7", "8", "9", "10", J, Q, K]
+    suit_classes: [clubs, diamonds, hearts, spades]
+
+training:
+  epochs: 80
+  batch_size: 128
+  learning_rate: 0.0003
+  balance: full_card
+  seed: 20260604
+  output: runs/card_classifier/v1
+
+gates:
+  rank_accuracy_clear: 0.995
+  suit_accuracy_clear: 0.995
+  full_card_accuracy_clear: 0.990

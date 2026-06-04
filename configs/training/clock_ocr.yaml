@@ -1,0 +1,22 @@
+dataset:
+  labels: datasets/baccarat_v1/annotations/clock_labels.csv
+  image_root: datasets/baccarat_v1
+  split_column: split
+
+model:
+  architecture: crnn_digit
+  image_height: 64
+  image_width: 256
+
+training:
+  epochs: 50
+  batch_size: 128
+  learning_rate: 0.001
+  seed: 20260604
+  output: runs/clock_ocr/v1
+
+gates:
+  full_timestamp_accuracy: 0.990
+  minute_boundary_recall: 0.995
+  minute_boundary_false_positive_rate: 0.002
+  unreadable_recall: 0.950

@@ -1,0 +1,67 @@
+app:
+  name: baccarat-video-extractor
+  environment: prod
+  log_level: INFO
+
+stream:
+  table_id: MD3212
+  camera_id: cam-01
+  url_secret_ref: secret://prod/baccarat/md3212/stream_url
+  protocol: hls
+  reconnect:
+    max_retries: -1
+    initial_backoff_ms: 500
+    max_backoff_ms: 10000
+  decode:
+    target_width: 1450
+    target_height: 718
+    process_fps: 10
+    burst_fps_during_deal: 20
+    frame_queue_size: 120
+    drop_policy: drop_oldest
+
+layout:
+  config_id: md3212-layout-v1
+  roi_format: normalized_xywh
+  rois:
+    clock: [0.006, 0.295, 0.190, 0.244]
+    player_zone: [0.277, 0.288, 0.210, 0.152]
+    banker_zone: [0.525, 0.253, 0.254, 0.178]
+  slot_priors:
+    P1: [0.386, 0.325, 0.045, 0.115]
+    P2: [0.431, 0.325, 0.047, 0.115]
+    P3: [0.480, 0.325, 0.047, 0.115]
+    B1: [0.540, 0.325, 0.047, 0.115]
+    B2: [0.594, 0.325, 0.047, 0.115]
+    B3: [0.650, 0.325, 0.047, 0.115]
+
+models:
+  clock_ocr:
+    registry_name: clock-ocr
+    version: production
+    min_confidence: 0.85
+  card_detector:
+    registry_name: baccarat-card-detector
+    version: production
+    min_confidence: 0.60
+  card_classifier:
+    registry_name: baccarat-rank-suit-classifier
+    version: production
+    min_confidence: 0.75
+
+round_engine:
+  expected_round_seconds: 60
+  start_second_window: [0, 5]
+  end_second_window: [50, 59]
+  min_clock_confirm_frames: 3
+  result_stable_seconds: 1.5
+  round_timeout_seconds: 90
+  allow_visual_start_without_clock: true
+  auto_publish_confidence: 0.90
+  review_confidence_threshold: 0.80
+
+temporal_voting:
+  card_window_frames: 15
+  min_valid_votes: 8
+  card_lock_confidence: 0.90
+  unlock_on_contradiction_frames: 6
