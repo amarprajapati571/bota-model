@@ -1,5 +1,5 @@
 {
-  "demo_mode": true,
+  "demo_mode": false,
   "table_id": "MD3212",
   "stream_id": "stream_MD3212_live",
   "session_id": "session_MD3212_local",
@@ -10,7 +10,7 @@
   },
   "playback": {
     "primary_protocol": "hls",
-    "hls_url": "http://localhost/hls/MD3212/index.m3u8",
+    "hls_url": "https://bota.dft-yui.com/",
     "webrtc_url": "",
     "fallback_protocol": "hls"
   },
