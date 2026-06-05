@@ -1,0 +1,37 @@
+table:
+  table_id: MD3212
+  stream_id: stream_MD3212_live
+  camera_id: cam-01
+
+source:
+  type: browser_page
+  url: https://bota.dft-yui.com/
+  viewport:
+    width: 1466
+    height: 746
+  wait_after_load_ms: 2500
+
+capture:
+  fps: 1
+  save_latest_frame: true
+  save_roi_crops: true
+  evidence_dir: evidence/live/MD3212
+
+playback:
+  primary_protocol: iframe
+  iframe_url: https://bota.dft-yui.com/
+  fallback_protocol: iframe
+
+frontend:
+  ws_url: ws://localhost:8000/ws/v1/tables/MD3212/live
+
+overlay_config:
+  coordinate_space: normalized
+  rois:
+    clock: { x1: 0.0068, y1: 0.2815, x2: 0.1944, y2: 0.5201 }
+    player: { x1: 0.2749, y1: 0.2748, x2: 0.4816, y2: 0.4236 }
+    banker: { x1: 0.5184, y1: 0.2426, x2: 0.7715, y2: 0.4155 }
+
+models:
+  clock_ocr_enabled: false
+  card_recognition_enabled: false

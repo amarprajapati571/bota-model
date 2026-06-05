@@ -48,6 +48,14 @@ python3 -m http.server 4173 -d frontend
 
 Then open `http://localhost:4173`.
 
+Run the live capture/WebSocket backend:
+
+```bash
+source .venv/bin/activate
+python3 -m playwright install chromium
+python3 -m src.live.app --config configs/live/md3212.yaml --host 0.0.0.0 --port 8000
+```
+
 Ubuntu deployment commands are in [docs/ubuntu.md](/Users/amarprajapat/Documents/bota-model/docs/ubuntu.md:1).
 
 ## Training Workflow

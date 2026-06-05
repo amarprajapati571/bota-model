@@ -43,6 +43,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
+python3 -m playwright install chromium
 ```
 
 For machines that will train models or run real YOLO/Torch inference:
@@ -68,6 +69,22 @@ python3 -m src.cli.replay --input examples/sample_observations.jsonl
 
 ## 6. Run Frontend For Development
 
+Start the live capture/WebSocket backend in one terminal:
+
+```bash
+source .venv/bin/activate
+python3 -m src.live.app --config configs/live/md3212.yaml --host 0.0.0.0 --port 8000
+```
+
+The backend will:
+
+- open `https://bota.dft-yui.com/` in a headless browser,
+- capture live frames,
+- save latest frame and ROI crops under `evidence/live/MD3212`,
+- publish WebSocket events to the frontend.
+
+In another terminal, start the frontend:
+
 ```bash
 python3 -m http.server 4173 -d frontend
 ```
@@ -88,6 +105,21 @@ Then open:
 
 ```text
 http://SERVER_IP:4173
+```
+
+If the browser is not running on the same machine as the backend, update:
+
+```text
+frontend/config/live-session.json
+```
+
+Set:
+
+```json
+"realtime": {
+  "protocol": "websocket",
+  "ws_url": "ws://SERVER_IP:8000/ws/v1/tables/MD3212/live"
+}
 ```
 
 ## 7. Production Frontend With Nginx
@@ -201,9 +233,9 @@ Important:
 
 ## Important Current Limit
 
-The repository currently includes the engine, schemas, tests, training utilities, and frontend mock live dashboard. Real live ML requires adding the service that:
+The repository now includes live frame capture and WebSocket event delivery. Full real ML still requires trained OCR/card models:
 
-- reads live frames,
-- runs OCR/card detector/classifier models,
-- feeds the round engine,
-- publishes frontend WebSocket events.
+- clock OCR model,
+- card detector,
+- rank/suit classifier,
+- model integration into `src/live/capture.py`.
