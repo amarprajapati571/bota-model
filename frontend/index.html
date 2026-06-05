@@ -29,6 +29,12 @@
         <section class="live-column">
           <div class="video-stage" id="videoStage">
             <video id="liveVideo" muted playsinline></video>
+            <iframe
+              id="streamFrame"
+              title="Live stream page"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allow="autoplay; fullscreen; picture-in-picture"
+            ></iframe>
             <canvas id="mockVideoCanvas" aria-hidden="true"></canvas>
             <canvas id="overlayCanvas" aria-label="Live detection overlay"></canvas>
             <div class="video-message" id="videoMessage" hidden></div>

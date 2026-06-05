@@ -7,6 +7,7 @@ export const liveSession = {
   source_video: { width: 1466, height: 746, fps: 30 },
   playback: {
     primary_protocol: "webrtc",
+    iframe_url: "",
     webrtc_url: "wss://media.example.com/webrtc/MD3212",
     hls_url: "https://media.example.com/hls/MD3212/index.m3u8",
     fallback_protocol: "hls",

@@ -45,6 +45,20 @@ Put the browser-safe playback URL here:
 }
 ```
 
+If the provider gives only a full web page endpoint, use iframe mode:
+
+```json
+{
+  "demo_mode": false,
+  "mock_events": false,
+  "playback": {
+    "primary_protocol": "iframe",
+    "iframe_url": "https://bota.dft-yui.com/",
+    "fallback_protocol": "iframe"
+  }
+}
+```
+
 Do not put the original private casino/provider stream URL in frontend files.
 If the URL is a normal website page, the video element cannot play it. Use the direct HLS playlist URL ending in `.m3u8`.
 

@@ -167,6 +167,7 @@ td,
 }
 
 #liveVideo,
+#streamFrame,
 #mockVideoCanvas,
 #overlayCanvas {
   position: absolute;
@@ -178,6 +179,13 @@ td,
 #liveVideo {
   display: none;
   object-fit: contain;
+}
+
+#streamFrame {
+  display: none;
+  height: 100%;
+  border: 0;
+  background: #050708;
 }
 
 .video-message {

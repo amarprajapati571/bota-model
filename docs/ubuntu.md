@@ -178,6 +178,20 @@ Example:
 }
 ```
 
+If the provider only gives a full page endpoint, use iframe mode:
+
+```json
+{
+  "demo_mode": false,
+  "mock_events": false,
+  "playback": {
+    "primary_protocol": "iframe",
+    "iframe_url": "https://bota.dft-yui.com/",
+    "fallback_protocol": "iframe"
+  }
+}
+```
+
 Important:
 
 - `SOURCE_STREAM_URL` is private and stays on the server.

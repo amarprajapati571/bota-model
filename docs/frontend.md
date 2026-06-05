@@ -36,6 +36,19 @@ For real HLS playback:
 }
 ```
 
+For a provider page endpoint instead of HLS:
+
+```json
+{
+  "demo_mode": false,
+  "mock_events": false,
+  "playback": {
+    "primary_protocol": "iframe",
+    "iframe_url": "https://bota.dft-yui.com/"
+  }
+}
+```
+
 Only put the public/signed playback URL here. The original source stream URL belongs on the backend ingest/FFmpeg side.
 For HLS playback, the URL should normally end with `.m3u8`.
 

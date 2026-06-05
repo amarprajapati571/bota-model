@@ -14,6 +14,7 @@ const elements = {
   debugButton: document.getElementById("debugButton"),
   videoStage: document.getElementById("videoStage"),
   liveVideo: document.getElementById("liveVideo"),
+  streamFrame: document.getElementById("streamFrame"),
   mockVideoCanvas: document.getElementById("mockVideoCanvas"),
   overlayCanvas: document.getElementById("overlayCanvas"),
   videoMessage: document.getElementById("videoMessage"),
@@ -101,14 +102,22 @@ function mergeLiveSession(base, override) {
 }
 
 function setupVideoPlayback() {
+  const protocol = liveSession.playback?.primary_protocol;
+  if (!useMockVideo && protocol === "iframe") {
+    setupIframePlayback();
+    return;
+  }
+
   const hlsUrl = liveSession.playback?.hls_url;
   if (useMockVideo || !hlsUrl) {
     elements.liveVideo.style.display = "none";
+    elements.streamFrame.style.display = "none";
     elements.mockVideoCanvas.style.display = "block";
     return;
   }
 
   const video = elements.liveVideo;
+  elements.streamFrame.style.display = "none";
   elements.mockVideoCanvas.style.display = "none";
   video.style.display = "block";
   video.controls = true;
@@ -159,6 +168,26 @@ function setupVideoPlayback() {
     "HLS playback is not available. Run npm install --prefix frontend so hls.js is installed, then refresh the page.";
 }
 
+function setupIframePlayback() {
+  const iframeUrl = liveSession.playback?.iframe_url || liveSession.playback?.hls_url;
+  elements.liveVideo.style.display = "none";
+  elements.mockVideoCanvas.style.display = "none";
+  elements.streamFrame.style.display = "block";
+
+  if (!iframeUrl) {
+    elements.videoMessage.hidden = false;
+    elements.videoMessage.textContent = "No playback.iframe_url is configured.";
+    return;
+  }
+
+  elements.streamFrame.src = iframeUrl;
+  elements.videoMessage.hidden = false;
+  elements.videoMessage.innerHTML =
+    'Embedded stream page mode is active. If this area stays blank, the provider blocks iframe embedding. <a href="' +
+    escapeHtml(iframeUrl) +
+    '" target="_blank" rel="noopener noreferrer">Open stream in new tab</a>.';
+}
+
 function looksLikePageUrl(url) {
   try {
     const parsed = new URL(url, window.location.href);
@@ -166,6 +195,19 @@ function looksLikePageUrl(url) {
   } catch {
     return true;
   }
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => {
+    const replacements = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return replacements[char];
+  });
 }
 
 function togglePaused() {
