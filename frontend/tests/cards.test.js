@@ -27,6 +27,19 @@ test("maps detected card confidence as the weakest component", () => {
   assert.equal(card.stable, false);
 });
 
+test("maps box-only detected card confidence from detector confidence", () => {
+  const card = mapDetectedCard("PLAYER", {
+    slot: 1,
+    bbox_norm: { x1: 0.1, y1: 0.1, x2: 0.2, y2: 0.2 },
+    det_confidence: 0.82,
+    rank_confidence: 0,
+    suit_confidence: 0,
+    stable: false,
+  });
+  assert.equal(card.cardCode, null);
+  assert.equal(card.confidence, 0.82);
+});
+
 test("cardCodeToViewModel creates locked final cards", () => {
   const card = cardCodeToViewModel("PLAYER", 1, "AH");
   assert.equal(card.rank, "A");

@@ -33,11 +33,10 @@ export function cardCodeToViewModel(zone, slot, cardCode) {
 }
 
 export function mapDetectedCard(zone, card) {
-  const confidence = Math.min(
-    card.det_confidence ?? 0,
-    card.rank_confidence ?? 0,
-    card.suit_confidence ?? 0,
-  );
+  const identityKnown = Boolean(card.rank && card.suit);
+  const confidence = identityKnown
+    ? Math.min(card.det_confidence ?? 0, card.rank_confidence ?? 0, card.suit_confidence ?? 0)
+    : (card.det_confidence ?? 0);
   return {
     zone,
     slot: Number(card.slot),

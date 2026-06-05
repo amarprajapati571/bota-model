@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import unittest
 
+from PIL import Image, ImageDraw
+
+from src.live.card_detection import detect_card_boxes
 from src.live.events import EventSequencer, make_event, stream_health_event
 
 
@@ -43,6 +46,30 @@ class LiveEventsTests(unittest.TestCase):
         self.assertEqual(event["payload"]["status"], "healthy")
         self.assertTrue(event["payload"]["source_connected"])
         self.assertEqual(event["payload"]["fps_processed"], 1)
+
+    def test_baseline_card_box_detector_finds_bright_cards_in_rois(self) -> None:
+        image = Image.new("RGB", (1000, 500), (0, 90, 50))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((320, 165, 370, 235), fill=(245, 245, 240))
+        draw.rectangle((390, 165, 440, 235), fill=(245, 245, 240))
+        draw.rectangle((560, 165, 610, 235), fill=(245, 245, 240))
+        draw.rectangle((630, 165, 680, 235), fill=(245, 245, 240))
+        import io
+
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG")
+
+        payload = detect_card_boxes(
+            buffer.getvalue(),
+            {
+                "player": {"x1": 0.25, "y1": 0.25, "x2": 0.50, "y2": 0.55},
+                "banker": {"x1": 0.52, "y1": 0.25, "x2": 0.75, "y2": 0.55},
+            },
+        )
+
+        self.assertGreaterEqual(len(payload["player_cards"]), 2)
+        self.assertGreaterEqual(len(payload["banker_cards"]), 2)
+        self.assertEqual(payload["player_cards"][0]["rank"], None)
 
 
 if __name__ == "__main__":

@@ -56,6 +56,8 @@ python3 -m playwright install chromium
 python3 -m src.live.app --config configs/live/md3212.yaml --host 0.0.0.0 --port 8010
 ```
 
+The live backend captures frames and publishes baseline card-box detections. Rank/suit/winner output still requires trained model integration.
+
 Ubuntu deployment commands are in [docs/ubuntu.md](/Users/amarprajapat/Documents/bota-model/docs/ubuntu.md:1).
 
 ## Training Workflow

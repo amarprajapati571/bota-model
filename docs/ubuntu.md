@@ -81,7 +81,10 @@ The backend will:
 - open `https://bota.dft-yui.com/` in a headless browser,
 - capture live frames,
 - save latest frame and ROI crops under `evidence/live/MD3212`,
-- publish WebSocket events to the frontend.
+- publish WebSocket events to the frontend,
+- run baseline card-box detection inside Player/Banker ROIs.
+
+The baseline detector shows card boxes/slots only. Rank, suit, totals, and winner still require trained OCR/card models.
 
 In another terminal, start the frontend:
 

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from src.live.config import LiveConfig
+from src.live.card_detection import detect_card_boxes
 from src.live.events import EventSequencer, make_event, review_required_event, stream_health_event
 
 
@@ -21,6 +22,8 @@ class CaptureState:
     last_frame_at: datetime | None = None
     last_frame_path: Path | None = None
     frame_count: int = 0
+    last_player_cards: list[dict] | None = None
+    last_banker_cards: list[dict] | None = None
     error: str | None = None
 
 
@@ -69,6 +72,8 @@ class LiveCaptureService:
                 "needs_review": True,
                 "last_frame_id": self.state.last_frame_id,
                 "last_frame_path": str(self.state.last_frame_path) if self.state.last_frame_path else None,
+                "last_player_cards": self.state.last_player_cards or [],
+                "last_banker_cards": self.state.last_banker_cards or [],
                 "error": self.state.error,
             },
         }
@@ -136,6 +141,9 @@ class LiveCaptureService:
         self.state.last_frame_at = captured_at
         self.state.last_frame_path = frame_path
         self.state.error = None
+        card_payload = detect_card_boxes(image_bytes, self.config.rois)
+        self.state.last_player_cards = card_payload["player_cards"]
+        self.state.last_banker_cards = card_payload["banker_cards"]
 
         self._publish(
             make_event(
@@ -152,6 +160,22 @@ class LiveCaptureService:
                 frame_id=frame_id,
             )
         )
+        if card_payload["player_cards"] or card_payload["banker_cards"]:
+            self._publish(
+                make_event(
+                    "cards.detected",
+                    self.config.table_id,
+                    self.config.stream_id,
+                    self.sequencer.next(),
+                    {
+                        "player_cards": card_payload["player_cards"],
+                        "banker_cards": card_payload["banker_cards"],
+                        "overall_confidence": _mean_detection_confidence(card_payload),
+                        "identity_status": "boxes_only",
+                    },
+                    frame_id=frame_id,
+                )
+            )
 
     def _save_roi_crops(self, image_bytes: bytes) -> None:
         try:
@@ -200,3 +224,14 @@ class LiveCaptureService:
     def _publish(self, event: dict) -> None:
         for callback in tuple(self._subscribers):
             callback(event)
+
+
+def _mean_detection_confidence(card_payload: dict[str, list[dict]]) -> float:
+    confidences = [
+        card["det_confidence"]
+        for card in card_payload["player_cards"] + card_payload["banker_cards"]
+        if card.get("det_confidence") is not None
+    ]
+    if not confidences:
+        return 0.0
+    return round(sum(confidences) / len(confidences), 4)
