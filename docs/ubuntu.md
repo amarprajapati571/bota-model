@@ -73,7 +73,7 @@ Start the live capture/WebSocket backend in one terminal:
 
 ```bash
 source .venv/bin/activate
-python3 -m src.live.app --config configs/live/md3212.yaml --host 0.0.0.0 --port 8000
+python3 -m src.live.app --config configs/live/md3212.yaml --host 0.0.0.0 --port 8010
 ```
 
 The backend will:
@@ -118,7 +118,7 @@ Set:
 ```json
 "realtime": {
   "protocol": "websocket",
-  "ws_url": "ws://SERVER_IP:8000/ws/v1/tables/MD3212/live"
+  "ws_url": "ws://SERVER_IP:8010/ws/v1/tables/MD3212/live"
 }
 ```
 

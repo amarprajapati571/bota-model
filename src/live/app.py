@@ -116,7 +116,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run live capture and realtime gateway.")
     parser.add_argument("--config", default="configs/live/md3212.yaml")
     parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--port", type=int, default=8010)
     args = parser.parse_args()
 
     config = load_live_config(Path(args.config))

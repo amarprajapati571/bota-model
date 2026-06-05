@@ -83,7 +83,7 @@ Video playback and ML data are separate. If `mock_events` is `false`, the fronte
   "mock_events": false,
   "realtime": {
     "protocol": "websocket",
-    "ws_url": "ws://localhost:8000/ws/v1/tables/MD3212/live"
+    "ws_url": "ws://localhost:8010/ws/v1/tables/MD3212/live"
   }
 }
 ```
@@ -93,7 +93,7 @@ If `ws_url` is empty, the video can still play, but clock/cards/winner will stay
 Start the included live capture gateway with:
 
 ```bash
-python3 -m src.live.app --config configs/live/md3212.yaml --host 0.0.0.0 --port 8000
+python3 -m src.live.app --config configs/live/md3212.yaml --host 0.0.0.0 --port 8010
 ```
 
 It captures live frames and publishes stream/review events. OCR/card recognition still requires trained model integration.
