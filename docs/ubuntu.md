@@ -169,6 +169,7 @@ Example:
 ```json
 {
   "demo_mode": false,
+  "mock_events": false,
   "playback": {
     "primary_protocol": "hls",
     "hls_url": "http://your-domain.com/hls/MD3212/index.m3u8",
@@ -181,6 +182,7 @@ Important:
 
 - `SOURCE_STREAM_URL` is private and stays on the server.
 - `hls_url` is the browser-safe playback URL served by Nginx/media server.
+- `hls_url` should normally be the exact `.m3u8` playlist, not a website homepage.
 - Do not add the original source stream URL to frontend code.
 
 ## Important Current Limit

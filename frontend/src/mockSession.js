@@ -1,5 +1,6 @@
 export const liveSession = {
   demo_mode: true,
+  mock_events: true,
   table_id: "MD3212",
   stream_id: "stream_MD3212_live",
   session_id: "session_20260604_MD3212",

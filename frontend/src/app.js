@@ -40,10 +40,12 @@ let debugOverlay = true;
 let mockEventIndex = 0;
 let animationFrame = 0;
 let useMockVideo = true;
+let useMockEvents = true;
 
 async function boot() {
   liveSession = await loadLiveSession();
   useMockVideo = liveSession.demo_mode !== false;
+  useMockEvents = liveSession.mock_events !== false || liveSession.realtime?.protocol === "mock";
   state = {
     ...state,
     tableId: liveSession.table_id,
@@ -58,7 +60,14 @@ async function boot() {
   setupVideoPlayback();
 
   render();
-  startMockFeed();
+  if (useMockEvents) {
+    startMockFeed();
+  } else {
+    elements.eventLog.replaceChildren();
+    const item = document.createElement("li");
+    item.textContent = "Waiting for realtime WebSocket events";
+    elements.eventLog.append(item);
+  }
   startTicker();
 }
 
@@ -103,6 +112,11 @@ function setupVideoPlayback() {
   video.style.display = "block";
   video.controls = true;
   video.muted = true;
+  elements.videoMessage.hidden = !looksLikePageUrl(hlsUrl);
+  if (!elements.videoMessage.hidden) {
+    elements.videoMessage.textContent =
+      "This playback URL does not look like a direct HLS .m3u8 stream. If the video stays blank, use the actual playlist URL, for example https://host/path/index.m3u8.";
+  }
 
   if (window.Hls?.isSupported()) {
     const hls = new window.Hls({
@@ -112,14 +126,39 @@ function setupVideoPlayback() {
     hls.loadSource(hlsUrl);
     hls.attachMedia(video);
     hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+      elements.videoMessage.hidden = true;
       video.play().catch(() => {});
+    });
+    hls.on(window.Hls.Events.ERROR, (_event, data) => {
+      if (data?.fatal) {
+        elements.videoMessage.hidden = false;
+        elements.videoMessage.textContent =
+          "Video playback failed. Check that playback.hls_url is a direct .m3u8 URL and that the server allows browser/CORS access.";
+      }
     });
     return;
   }
 
   if (video.canPlayType("application/vnd.apple.mpegurl")) {
     video.src = hlsUrl;
+    video.addEventListener("loadedmetadata", () => {
+      elements.videoMessage.hidden = true;
+    });
+    video.addEventListener("error", () => {
+      elements.videoMessage.hidden = false;
+      elements.videoMessage.textContent =
+        "Video playback failed. Check that playback.hls_url is a direct .m3u8 URL and that the server allows browser/CORS access.";
+    });
     video.play().catch(() => {});
+  }
+}
+
+function looksLikePageUrl(url) {
+  try {
+    const parsed = new URL(url, window.location.href);
+    return !parsed.pathname.endsWith(".m3u8") && !parsed.pathname.endsWith(".mp4");
+  } catch {
+    return true;
   }
 }
 

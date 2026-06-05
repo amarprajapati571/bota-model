@@ -28,6 +28,7 @@ For real HLS playback:
 ```json
 {
   "demo_mode": false,
+  "mock_events": false,
   "playback": {
     "primary_protocol": "hls",
     "hls_url": "http://YOUR_SERVER_IP/hls/MD3212/index.m3u8"
@@ -36,6 +37,7 @@ For real HLS playback:
 ```
 
 Only put the public/signed playback URL here. The original source stream URL belongs on the backend ingest/FFmpeg side.
+For HLS playback, the URL should normally end with `.m3u8`.
 
 ## State Flow
 

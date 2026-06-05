@@ -37,6 +37,7 @@ Put the browser-safe playback URL here:
 ```json
 {
   "demo_mode": false,
+  "mock_events": false,
   "playback": {
     "primary_protocol": "hls",
     "hls_url": "http://YOUR_SERVER_IP/hls/MD3212/index.m3u8"
@@ -45,6 +46,7 @@ Put the browser-safe playback URL here:
 ```
 
 Do not put the original private casino/provider stream URL in frontend files.
+If the URL is a normal website page, the video element cannot play it. Use the direct HLS playlist URL ending in `.m3u8`.
 
 For production API setup, replace `frontend/config/live-session.json` with API data from:
 
