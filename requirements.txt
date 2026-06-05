@@ -1,0 +1,8 @@
+# Runtime Python dependencies for the current starter service.
+#
+# The backend, CLI, dataset validators, and tests currently use only the
+# Python standard library. Keep this file so production setup scripts can run:
+#
+#   python3 -m pip install -r requirements.txt
+#
+# Add pinned packages here when live ML/video/API integrations are introduced.

@@ -25,6 +25,15 @@ npm test --prefix frontend
 
 The replay command reads frame observations from JSON Lines and prints emitted events.
 
+Create a virtual environment and install Python requirements:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+```
+
 Start the static operator dashboard:
 
 ```bash
