@@ -76,4 +76,18 @@ Feed live events into `applyLiveEvent` from:
 wss://api.example.com/ws/v1/tables/{table_id}/live
 ```
 
+Set it in `frontend/config/live-session.json`:
+
+```json
+{
+  "mock_events": false,
+  "realtime": {
+    "protocol": "websocket",
+    "ws_url": "ws://YOUR_SERVER/ws/v1/tables/MD3212/live"
+  }
+}
+```
+
+Without `ws_url`, the video can load but the ML data panel will remain empty.
+
 The browser should receive signed playback URLs only. Never expose the original source stream URL.

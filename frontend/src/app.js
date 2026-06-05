@@ -43,6 +43,7 @@ let mockEventIndex = 0;
 let animationFrame = 0;
 let useMockVideo = true;
 let useMockEvents = true;
+let socket = null;
 
 async function boot() {
   liveSession = await loadLiveSession();
@@ -64,13 +65,89 @@ async function boot() {
   render();
   if (useMockEvents) {
     startMockFeed();
+  } else if (liveSession.realtime?.ws_url) {
+    connectRealtimeSocket();
   } else {
-    elements.eventLog.replaceChildren();
-    const item = document.createElement("li");
-    item.textContent = "Waiting for realtime WebSocket events";
-    elements.eventLog.append(item);
+    markRealtimeMissing();
   }
   startTicker();
+}
+
+function markRealtimeMissing() {
+  state = {
+    ...state,
+    streamStatus: "degraded",
+    roundState: "WAITING_FOR_ML_DATA",
+    lastEventAtMs: Date.now(),
+  };
+  elements.eventLog.replaceChildren();
+  const item = document.createElement("li");
+  item.textContent = "No realtime WebSocket URL configured. Video is visible, but ML data cannot update.";
+  elements.eventLog.append(item);
+  elements.reviewPanel.classList.add("active");
+  elements.reviewMessage.textContent =
+    "Connect backend WebSocket events or set mock_events=true for demo data.";
+}
+
+function connectRealtimeSocket() {
+  const wsUrl = liveSession.realtime.ws_url;
+  socket = new WebSocket(wsUrl);
+
+  socket.addEventListener("open", () => {
+    state = {
+      ...state,
+      streamStatus: "healthy",
+      lastEventAtMs: Date.now(),
+    };
+    socket.send(
+      JSON.stringify({
+        type: "subscribe",
+        table_id: liveSession.table_id,
+        stream_id: liveSession.stream_id,
+        last_sequence_number: state.lastSequenceNumber,
+        channels: [
+          "stream.health",
+          "clock.tick",
+          "round.state",
+          "cards.detected",
+          "round.final",
+          "review.required",
+        ],
+      }),
+    );
+    render();
+  });
+
+  socket.addEventListener("message", (message) => {
+    try {
+      const event = JSON.parse(message.data);
+      if (event.type?.startsWith("subscription.")) return;
+      state = applyLiveEvent(state, event);
+      render();
+    } catch {
+      elements.eventLog.prepend(document.createTextNode("Invalid WebSocket event"));
+    }
+  });
+
+  socket.addEventListener("close", () => {
+    state = {
+      ...state,
+      streamStatus: "degraded",
+      lastEventAtMs: Date.now(),
+    };
+    render();
+  });
+
+  socket.addEventListener("error", () => {
+    state = {
+      ...state,
+      streamStatus: "degraded",
+      lastEventAtMs: Date.now(),
+    };
+    elements.reviewPanel.classList.add("active");
+    elements.reviewMessage.textContent = "Realtime WebSocket connection failed.";
+    render();
+  });
 }
 
 async function loadLiveSession() {
@@ -536,6 +613,7 @@ function shortRoundId(roundId) {
 
 window.addEventListener("beforeunload", () => {
   if (animationFrame) window.cancelAnimationFrame(animationFrame);
+  socket?.close();
 });
 
 boot();

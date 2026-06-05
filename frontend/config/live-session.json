@@ -19,6 +19,7 @@
   "realtime": {
     "protocol": "websocket",
     "ws_url": "",
+    "_comment": "Set ws_url to your live ML event gateway. Leave empty only when mock_events=true.",
     "heartbeat_interval_ms": 5000
   },
   "overlay_config": {

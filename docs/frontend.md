@@ -74,6 +74,33 @@ Supported now:
 - `round.final`
 - `review.required`
 
+## Realtime Data Configuration
+
+Video playback and ML data are separate. If `mock_events` is `false`, the frontend needs a WebSocket URL:
+
+```json
+{
+  "mock_events": false,
+  "realtime": {
+    "protocol": "websocket",
+    "ws_url": "ws://YOUR_SERVER/ws/v1/tables/MD3212/live"
+  }
+}
+```
+
+If `ws_url` is empty, the video can still play, but clock/cards/winner will stay empty because no ML events are arriving.
+
+For demo cards/results without a backend, use:
+
+```json
+{
+  "mock_events": true,
+  "realtime": {
+    "protocol": "mock"
+  }
+}
+```
+
 ## Overlay Coordinates
 
 All boxes are normalized `{ x1, y1, x2, y2 }` in source video space. The helper in `frontend/src/bbox.js` maps them to the rendered canvas while accounting for `object-fit: contain` letterboxing.
