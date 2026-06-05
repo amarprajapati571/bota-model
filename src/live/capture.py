@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Callable
 
 from src.live.config import LiveConfig
-from src.live.card_detection import detect_card_boxes
 from src.live.events import EventSequencer, make_event, review_required_event, stream_health_event
+from src.live.pipeline import LiveInferencePipeline
 
 
 EventCallback = Callable[[dict], None]
@@ -24,6 +24,9 @@ class CaptureState:
     frame_count: int = 0
     last_player_cards: list[dict] | None = None
     last_banker_cards: list[dict] | None = None
+    last_clock: dict | None = None
+    last_round_state: str | None = None
+    last_debug: dict | None = None
     error: str | None = None
 
 
@@ -32,6 +35,13 @@ class LiveCaptureService:
         self.config = config
         self.state = CaptureState()
         self.sequencer = EventSequencer()
+        self.pipeline = LiveInferencePipeline(
+            config,
+            self.sequencer,
+            card_hold_frames=config.card_hold_frames,
+            card_confirm_frames=config.card_confirm_frames,
+            debug_sample_every=config.debug_sample_every,
+        )
         self._subscribers: set[EventCallback] = set()
         self._task: asyncio.Task | None = None
         self._stop = asyncio.Event()
@@ -64,7 +74,7 @@ class LiveCaptureService:
                 "stream_status": "healthy" if self.state.connected else "degraded",
                 "round_id": None,
                 "round_state": "CAPTURING_FRAMES" if self.state.connected else "WAITING_FOR_STREAM",
-                "clock_text": None,
+                "clock_text": self.state.last_clock.get("clock_text") if self.state.last_clock else None,
                 "player_cards": [],
                 "banker_cards": [],
                 "winner": None,
@@ -74,6 +84,9 @@ class LiveCaptureService:
                 "last_frame_path": str(self.state.last_frame_path) if self.state.last_frame_path else None,
                 "last_player_cards": self.state.last_player_cards or [],
                 "last_banker_cards": self.state.last_banker_cards or [],
+                "last_clock": self.state.last_clock,
+                "last_round_state": self.state.last_round_state,
+                "last_debug": self.state.last_debug,
                 "error": self.state.error,
             },
         }
@@ -114,8 +127,8 @@ class LiveCaptureService:
             self.state.connected = True
             self._publish_health()
             self._publish_review(
-                "Live frames are being captured. OCR/card models are not configured yet, "
-                "so cards and winner remain pending.",
+                "Live frames are being captured. Card boxes and timer metadata are active. "
+                "Rank/suit classification still requires a configured model before winner confirmation.",
             )
 
             while not self._stop.is_set():
@@ -141,9 +154,22 @@ class LiveCaptureService:
         self.state.last_frame_at = captured_at
         self.state.last_frame_path = frame_path
         self.state.error = None
-        card_payload = detect_card_boxes(image_bytes, self.config.rois)
-        self.state.last_player_cards = card_payload["player_cards"]
-        self.state.last_banker_cards = card_payload["banker_cards"]
+        result = self.pipeline.process_frame(
+            image_bytes,
+            captured_at,
+            frame_id,
+            self.state.frame_count,
+        )
+        self.state.last_player_cards = result.card_payload["player_cards"]
+        self.state.last_banker_cards = result.card_payload["banker_cards"]
+        self.state.last_clock = result.clock.to_event_payload()
+        self.state.last_round_state = result.round_state
+        self.state.last_debug = {
+            "frame_id": result.debug_payload.get("frame_id"),
+            "image": result.debug_payload.get("image"),
+            "rois": result.debug_payload.get("rois"),
+            "identity_status": result.debug_payload.get("identity_status"),
+        }
 
         self._publish(
             make_event(
@@ -155,27 +181,17 @@ class LiveCaptureService:
                     "frame_id": frame_id,
                     "frame_uri": str(frame_path),
                     "roi_crops_saved": self.config.save_roi_crops,
-                    "model_outputs_available": False,
+                    "debug_artifacts_dir": str(self.config.evidence_dir / "debug"),
+                    "model_outputs_available": True,
+                    "identity_status": "boxes_only",
+                    "processing_ms": result.processing_ms,
+                    "round_state": result.round_state,
                 },
                 frame_id=frame_id,
             )
         )
-        if card_payload["player_cards"] or card_payload["banker_cards"]:
-            self._publish(
-                make_event(
-                    "cards.detected",
-                    self.config.table_id,
-                    self.config.stream_id,
-                    self.sequencer.next(),
-                    {
-                        "player_cards": card_payload["player_cards"],
-                        "banker_cards": card_payload["banker_cards"],
-                        "overall_confidence": _mean_detection_confidence(card_payload),
-                        "identity_status": "boxes_only",
-                    },
-                    frame_id=frame_id,
-                )
-            )
+        for event in result.events:
+            self._publish(event)
 
     def _save_roi_crops(self, image_bytes: bytes) -> None:
         try:
@@ -224,14 +240,3 @@ class LiveCaptureService:
     def _publish(self, event: dict) -> None:
         for callback in tuple(self._subscribers):
             callback(event)
-
-
-def _mean_detection_confidence(card_payload: dict[str, list[dict]]) -> float:
-    confidences = [
-        card["det_confidence"]
-        for card in card_payload["player_cards"] + card_payload["banker_cards"]
-        if card.get("det_confidence") is not None
-    ]
-    if not confidences:
-        return 0.0
-    return round(sum(confidences) / len(confidences), 4)

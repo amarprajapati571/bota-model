@@ -9,10 +9,12 @@ source:
   viewport:
     width: 1466
     height: 746
+  raw_frame_width: 1466
+  raw_frame_height: 746
   wait_after_load_ms: 2500
 
 capture:
-  fps: 1
+  fps: 5
   save_latest_frame: true
   save_roi_crops: true
   evidence_dir: evidence/live/MD3212
@@ -29,9 +31,35 @@ overlay_config:
   coordinate_space: normalized
   rois:
     clock: { x1: 0.0068, y1: 0.2815, x2: 0.1944, y2: 0.5201 }
+    timer_primary: { x1: 0.0068, y1: 0.2815, x2: 0.1944, y2: 0.5201 }
     player: { x1: 0.2749, y1: 0.2748, x2: 0.4816, y2: 0.4236 }
+    player_cards: { x1: 0.2749, y1: 0.2748, x2: 0.4816, y2: 0.4236 }
     banker: { x1: 0.5184, y1: 0.2426, x2: 0.7715, y2: 0.4155 }
+    banker_cards: { x1: 0.5184, y1: 0.2426, x2: 0.7715, y2: 0.4155 }
 
 models:
   clock_ocr_enabled: false
+  clock_ocr_interval_frames: 5
   card_recognition_enabled: false
+  card_detector_backend: heuristic
+  yolo_card_detector:
+    model_path: models/card_detector/md3212_cards.pt
+    confidence: 0.35
+    iou: 0.45
+    imgsz: 960
+    device:
+    card_class_names: [card, playing_card]
+
+temporal:
+  card_confirm_frames: 2
+  card_hold_frames: 3
+  card_min_confidence: 0.45
+  visual_stable_frames: 4
+  empty_reset_frames: 5
+  timer_visibility_threshold: 0.55
+  timer_hidden_confirm_frames: 2
+  timer_visible_confirm_frames: 2
+  round_reset_delay_ms: 1500
+
+debug:
+  sample_every_frames: 30

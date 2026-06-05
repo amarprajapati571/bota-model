@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from io import BytesIO
 from typing import Any
 
+from src.live.roi_calibration import normalized_roi_to_pixels
+
 
 @dataclass(frozen=True)
 class DetectedCard:
@@ -14,6 +16,7 @@ class DetectedCard:
 
     def to_frontend_payload(self) -> dict[str, Any]:
         return {
+            "side": self.side,
             "slot": self.slot,
             "rank": None,
             "suit": None,
@@ -45,16 +48,20 @@ def detect_card_boxes(image_bytes: bytes, rois: dict[str, dict[str, float]]) -> 
         import numpy as np
 
         frame = np.array(image)
-        player = _detect_side_opencv(frame, width, height, rois.get("player"), "PLAYER")
-        banker = _detect_side_opencv(frame, width, height, rois.get("banker"), "BANKER")
+        player = _detect_side_opencv(frame, width, height, _side_roi(rois, "player"), "PLAYER")
+        banker = _detect_side_opencv(frame, width, height, _side_roi(rois, "banker"), "BANKER")
     except ImportError:
-        player = _detect_side_pillow(image, width, height, rois.get("player"), "PLAYER")
-        banker = _detect_side_pillow(image, width, height, rois.get("banker"), "BANKER")
+        player = _detect_side_pillow(image, width, height, _side_roi(rois, "player"), "PLAYER")
+        banker = _detect_side_pillow(image, width, height, _side_roi(rois, "banker"), "BANKER")
 
     return {
         "player_cards": [card.to_frontend_payload() for card in player],
         "banker_cards": [card.to_frontend_payload() for card in banker],
     }
+
+
+def _side_roi(rois: dict[str, dict[str, float]], side: str) -> dict[str, float] | None:
+    return rois.get(f"{side}_cards") or rois.get(side)
 
 
 def _detect_side_opencv(
@@ -66,11 +73,8 @@ def _detect_side_opencv(
     import cv2
     import numpy as np
 
-    x1 = max(0, int(float(roi["x1"]) * width))
-    y1 = max(0, int(float(roi["y1"]) * height))
-    x2 = min(width, int(float(roi["x2"]) * width))
-    y2 = min(height, int(float(roi["y2"]) * height))
-    crop = frame[y1:y2, x1:x2]
+    roi_box = normalized_roi_to_pixels(roi, width, height)
+    crop = frame[roi_box.y1 : roi_box.y2, roi_box.x1 : roi_box.x2]
     if crop.size == 0:
         return []
 
@@ -82,10 +86,10 @@ def _detect_side_opencv(
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    roi_width = max(1, x2 - x1)
-    roi_height = max(1, y2 - y1)
-    min_area = roi_width * roi_height * 0.008
-    max_area = roi_width * roi_height * 0.20
+    roi_width = max(1, roi_box.width)
+    roi_height = max(1, roi_box.height)
+    min_area = roi_width * roi_height * 0.012
+    max_area = roi_width * roi_height * 0.18
 
     candidates: list[tuple[int, int, int, int, float]] = []
     for contour in contours:
@@ -94,25 +98,28 @@ def _detect_side_opencv(
         if area < min_area or area > max_area:
             continue
         aspect = cw / max(ch, 1)
-        if not 0.35 <= aspect <= 1.35:
+        if not 0.38 <= aspect <= 1.18:
             continue
-        if cw < roi_width * 0.035 or ch < roi_height * 0.18:
+        if cw < roi_width * 0.045 or ch < roi_height * 0.22:
             continue
 
         fill_ratio = cv2.contourArea(contour) / max(area, 1)
         if fill_ratio < 0.28:
             continue
-        candidates.append((cx, cy, cw, ch, min(0.95, max(0.45, fill_ratio))))
+        area_score = min(1.0, area / max(min_area * 5, 1))
+        aspect_score = max(0.0, 1.0 - abs(aspect - 0.72) / 0.72)
+        confidence = 0.50 * fill_ratio + 0.30 * area_score + 0.20 * aspect_score
+        candidates.append((cx, cy, cw, ch, min(0.97, max(0.35, confidence))))
 
     candidates = _dedupe_boxes(candidates)
     candidates.sort(key=lambda item: item[0])
 
     cards: list[DetectedCard] = []
     for slot, (cx, cy, cw, ch, confidence) in enumerate(candidates[:3], start=1):
-        abs_x1 = x1 + cx
-        abs_y1 = y1 + cy
-        abs_x2 = x1 + cx + cw
-        abs_y2 = y1 + cy + ch
+        abs_x1 = roi_box.x1 + cx
+        abs_y1 = roi_box.y1 + cy
+        abs_x2 = roi_box.x1 + cx + cw
+        abs_y2 = roi_box.y1 + cy + ch
         cards.append(
             DetectedCard(
                 side=side,
@@ -135,11 +142,8 @@ def _detect_side_pillow(
     if not roi:
         return []
 
-    x1 = max(0, int(float(roi["x1"]) * width))
-    y1 = max(0, int(float(roi["y1"]) * height))
-    x2 = min(width, int(float(roi["x2"]) * width))
-    y2 = min(height, int(float(roi["y2"]) * height))
-    crop = image.crop((x1, y1, x2, y2)).convert("RGB")
+    roi_box = normalized_roi_to_pixels(roi, width, height)
+    crop = image.crop((roi_box.x1, roi_box.y1, roi_box.x2, roi_box.y2)).convert("RGB")
     crop_width, crop_height = crop.size
     if crop_width == 0 or crop_height == 0:
         return []
@@ -155,8 +159,8 @@ def _detect_side_pillow(
 
     visited = [[False for _ in range(crop_width)] for _ in range(crop_height)]
     roi_area = crop_width * crop_height
-    min_area = roi_area * 0.008
-    max_area = roi_area * 0.20
+    min_area = roi_area * 0.012
+    max_area = roi_area * 0.18
     boxes: list[tuple[int, int, int, int, float]] = []
 
     for y in range(crop_height):
@@ -174,14 +178,17 @@ def _detect_side_pillow(
             if area < min_area or area > max_area:
                 continue
             aspect = bw / max(bh, 1)
-            if not 0.35 <= aspect <= 1.35:
+            if not 0.38 <= aspect <= 1.18:
                 continue
-            if bw < crop_width * 0.035 or bh < crop_height * 0.18:
+            if bw < crop_width * 0.045 or bh < crop_height * 0.22:
                 continue
             fill_ratio = len(component) / max(area, 1)
             if fill_ratio < 0.28:
                 continue
-            boxes.append((bx1, by1, bw, bh, min(0.9, max(0.45, fill_ratio))))
+            area_score = min(1.0, area / max(min_area * 5, 1))
+            aspect_score = max(0.0, 1.0 - abs(aspect - 0.72) / 0.72)
+            confidence = 0.50 * fill_ratio + 0.30 * area_score + 0.20 * aspect_score
+            boxes.append((bx1, by1, bw, bh, min(0.95, max(0.35, confidence))))
 
     boxes = _dedupe_boxes(boxes)
     boxes.sort(key=lambda item: item[0])
@@ -193,10 +200,10 @@ def _detect_side_pillow(
                 side=side,
                 slot=slot,
                 bbox_norm={
-                    "x1": round((x1 + bx) / width, 6),
-                    "y1": round((y1 + by) / height, 6),
-                    "x2": round((x1 + bx + bw) / width, 6),
-                    "y2": round((y1 + by + bh) / height, 6),
+                    "x1": round((roi_box.x1 + bx) / width, 6),
+                    "y1": round((roi_box.y1 + by) / height, 6),
+                    "x2": round((roi_box.x1 + bx + bw) / width, 6),
+                    "y2": round((roi_box.y1 + by + bh) / height, 6),
                 },
                 confidence=round(confidence, 4),
             )

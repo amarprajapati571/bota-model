@@ -242,3 +242,33 @@ The repository now includes live frame capture and WebSocket event delivery. Ful
 - card detector,
 - rank/suit classifier,
 - model integration into `src/live/capture.py`.
+
+## Optional YOLO Card Detector
+
+The live backend can use an Ultralytics YOLO model for card-box detection. Put a trained model here:
+
+```text
+models/card_detector/md3212_cards.pt
+```
+
+Then set:
+
+```yaml
+models:
+  card_detector_backend: yolo
+  yolo_card_detector:
+    model_path: models/card_detector/md3212_cards.pt
+    confidence: 0.35
+    iou: 0.45
+    imgsz: 960
+    device: cuda:0
+    card_class_names: [card, playing_card]
+```
+
+Install the ML extras before running YOLO:
+
+```bash
+python3 -m pip install -r requirements-ml.txt
+```
+
+If the model is missing or Ultralytics is not installed, the service falls back to the heuristic detector so the stream gateway still starts. YOLO detects card boxes only; rank/suit identity still needs a classifier before winner confirmation can be automated. Ollama-style vision models are better suited for offline analysis or review assistance, not low-latency deterministic card localization.

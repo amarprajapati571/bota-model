@@ -23,9 +23,11 @@ export const initialState = {
   recentRounds: [],
   eventLog: [],
   seenEventIds: new Set(),
+  lastCardUpdateAtMs: 0,
 };
 
 const FINAL_STATES = new Set(["ROUND_FINALIZED", "ERROR_REVIEW"]);
+const CARD_HOLD_MS = 2500;
 
 export function applyLiveEvent(state, event) {
   if (event.event_id && state.seenEventIds.has(event.event_id)) {
@@ -51,7 +53,7 @@ export function applyLiveEvent(state, event) {
     case "clock.tick":
       return {
         ...base,
-        clockText: event.payload.clock_text,
+        clockText: event.payload.parsed_time ?? event.payload.clock_text,
         clockConfidence: event.payload.confidence,
       };
 
@@ -59,24 +61,49 @@ export function applyLiveEvent(state, event) {
       if (FINAL_STATES.has(state.roundState) && event.round_id === state.roundId) {
         return base;
       }
+      if (event.payload.state === "RESET" || event.payload.state === "WAITING_FOR_ROUND") {
+        return {
+          ...base,
+          roundId: event.round_id ?? null,
+          roundState: event.payload.state,
+          playerCards: [],
+          bankerCards: [],
+          playerTotal: null,
+          bankerTotal: null,
+          winner: null,
+          overallConfidence: event.payload.state_confidence,
+          needsReview: false,
+          reviewReason: null,
+          lastCardUpdateAtMs: 0,
+        };
+      }
       return {
         ...base,
         roundId: event.round_id ?? state.roundId,
         roundState: event.payload.state,
         overallConfidence: event.payload.state_confidence,
+        needsReview: event.payload.state === "ERROR_REVIEW" ? state.needsReview : false,
       };
 
     case "cards.detected":
+      const eventTime = event.wall_time_ms ?? Date.now();
       return {
         ...base,
         roundId: event.round_id ?? state.roundId,
-        playerCards: (event.payload.player_cards ?? []).map((card) =>
-          mapDetectedCard("PLAYER", card),
+        playerCards: mergeCardsBySlot(
+          state.playerCards,
+          (event.payload.player_cards ?? []).map((card) => mapDetectedCard("PLAYER", card)),
+          eventTime,
+          state.lastCardUpdateAtMs,
         ),
-        bankerCards: (event.payload.banker_cards ?? []).map((card) =>
-          mapDetectedCard("BANKER", card),
+        bankerCards: mergeCardsBySlot(
+          state.bankerCards,
+          (event.payload.banker_cards ?? []).map((card) => mapDetectedCard("BANKER", card)),
+          eventTime,
+          state.lastCardUpdateAtMs,
         ),
         overallConfidence: event.payload.overall_confidence,
+        lastCardUpdateAtMs: eventTime,
       };
 
     case "round.final": {
@@ -135,6 +162,31 @@ function withEventBookkeeping(state, event) {
     lastEventAtMs: event.wall_time_ms ?? Date.now(),
     eventLog: [`${event.sequence_number ?? "-"} ${event.event_type}`, ...state.eventLog].slice(0, 18),
   };
+}
+
+function mergeCardsBySlot(previousCards, nextCards, eventTime, lastCardUpdateAtMs) {
+  if (nextCards.length > 0) {
+    const bySlot = new Map(previousCards.map((card) => [card.slot, card]));
+    for (const card of nextCards) {
+      const previous = bySlot.get(card.slot);
+      bySlot.set(card.slot, chooseCard(previous, card));
+    }
+    return [...bySlot.values()].sort((a, b) => a.slot - b.slot);
+  }
+
+  const ageMs = eventTime - (lastCardUpdateAtMs || 0);
+  if (previousCards.length > 0 && ageMs <= CARD_HOLD_MS) {
+    return previousCards.map((card) => ({ ...card, stable: false }));
+  }
+  return [];
+}
+
+function chooseCard(previous, next) {
+  if (!previous) return next;
+  if (next.cardCode && !previous.cardCode) return next;
+  if (next.stable && !previous.stable) return next;
+  if ((next.confidence ?? 0) >= (previous.confidence ?? 0)) return next;
+  return { ...previous, bboxNorm: next.bboxNorm ?? previous.bboxNorm, stable: next.stable };
 }
 
 function compactTime(value) {
