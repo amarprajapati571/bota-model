@@ -26,7 +26,27 @@ npm test --prefix frontend
 
 ## Production Integration Points
 
-Replace `frontend/src/mockSession.js` with API data from:
+For local/manual setup, edit:
+
+```text
+frontend/config/live-session.json
+```
+
+Put the browser-safe playback URL here:
+
+```json
+{
+  "demo_mode": false,
+  "playback": {
+    "primary_protocol": "hls",
+    "hls_url": "http://YOUR_SERVER_IP/hls/MD3212/index.m3u8"
+  }
+}
+```
+
+Do not put the original private casino/provider stream URL in frontend files.
+
+For production API setup, replace `frontend/config/live-session.json` with API data from:
 
 ```http
 GET /api/v1/tables/{table_id}/live-session

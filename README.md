@@ -79,7 +79,9 @@ Frontend streaming guidance lives in [docs/frontend.md](/Users/amarprajapat/Docu
 
 Production integration points:
 
-- Replace mock session data with `GET /api/v1/tables/{table_id}/live-session`.
+- For local live playback, edit `frontend/config/live-session.json`.
+- Set `"demo_mode": false` and put the browser-safe HLS URL in `playback.hls_url`.
+- Replace local config with `GET /api/v1/tables/{table_id}/live-session` when the backend API exists.
 - Feed WebSocket events into `applyLiveEvent`.
 - Use signed WebRTC/HLS playback URLs only.
 

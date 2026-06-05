@@ -134,7 +134,7 @@ sudo systemctl reload nginx
 
 ## 8. Example Live HLS Output
 
-Use only an authorized stream URL:
+Use only an authorized stream URL. This is where the original/private stream URL goes:
 
 ```bash
 export SOURCE_STREAM_URL="https://your-authorized-live-stream-url.m3u8"
@@ -157,6 +157,31 @@ The browser playback URL becomes:
 ```text
 http://your-domain.com/hls/MD3212/index.m3u8
 ```
+
+Now put that browser playback URL in:
+
+```text
+/opt/bota-model/app/frontend/config/live-session.json
+```
+
+Example:
+
+```json
+{
+  "demo_mode": false,
+  "playback": {
+    "primary_protocol": "hls",
+    "hls_url": "http://your-domain.com/hls/MD3212/index.m3u8",
+    "fallback_protocol": "hls"
+  }
+}
+```
+
+Important:
+
+- `SOURCE_STREAM_URL` is private and stays on the server.
+- `hls_url` is the browser-safe playback URL served by Nginx/media server.
+- Do not add the original source stream URL to frontend code.
 
 ## Important Current Limit
 

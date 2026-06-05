@@ -7,6 +7,36 @@ The frontend uses two independent channels:
 
 The static implementation in `frontend/` is a dependency-free operator dashboard that mirrors the intended production contract. It uses a mock event source until a realtime gateway exists.
 
+## Local Stream Configuration
+
+Edit:
+
+```text
+frontend/config/live-session.json
+```
+
+For demo mode:
+
+```json
+{
+  "demo_mode": true
+}
+```
+
+For real HLS playback:
+
+```json
+{
+  "demo_mode": false,
+  "playback": {
+    "primary_protocol": "hls",
+    "hls_url": "http://YOUR_SERVER_IP/hls/MD3212/index.m3u8"
+  }
+}
+```
+
+Only put the public/signed playback URL here. The original source stream URL belongs on the backend ingest/FFmpeg side.
+
 ## State Flow
 
 1. Load live-session configuration.

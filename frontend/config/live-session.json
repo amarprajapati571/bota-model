@@ -1,0 +1,30 @@
+{
+  "demo_mode": true,
+  "table_id": "MD3212",
+  "stream_id": "stream_MD3212_live",
+  "session_id": "session_MD3212_local",
+  "source_video": {
+    "width": 1466,
+    "height": 746,
+    "fps": 30
+  },
+  "playback": {
+    "primary_protocol": "hls",
+    "hls_url": "http://localhost/hls/MD3212/index.m3u8",
+    "webrtc_url": "",
+    "fallback_protocol": "hls"
+  },
+  "realtime": {
+    "protocol": "mock",
+    "ws_url": "",
+    "heartbeat_interval_ms": 5000
+  },
+  "overlay_config": {
+    "coordinate_space": "normalized",
+    "rois": {
+      "clock": { "x1": 0.0068, "y1": 0.2815, "x2": 0.1944, "y2": 0.5201 },
+      "player": { "x1": 0.2749, "y1": 0.2748, "x2": 0.4816, "y2": 0.4236 },
+      "banker": { "x1": 0.5184, "y1": 0.2426, "x2": 0.7715, "y2": 0.4155 }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { bboxNormToCanvasPx } from "./bbox.js";
 import { formatCard } from "./cards.js";
 import { applyLiveEvent, initialState } from "./liveEvents.js";
-import { buildMockEvents, liveSession } from "./mockSession.js";
+import { buildMockEvents, liveSession as defaultLiveSession } from "./mockSession.js";
 
 const elements = {
   tableId: document.getElementById("tableId"),
@@ -33,27 +33,94 @@ const elements = {
   eventLog: document.getElementById("eventLog"),
 };
 
-let state = {
-  ...initialState,
-  tableId: liveSession.table_id,
-  streamId: liveSession.stream_id,
-};
+let liveSession = defaultLiveSession;
+let state = { ...initialState };
 let paused = false;
 let debugOverlay = true;
 let mockEventIndex = 0;
 let animationFrame = 0;
+let useMockVideo = true;
 
-function boot() {
+async function boot() {
+  liveSession = await loadLiveSession();
+  useMockVideo = liveSession.demo_mode !== false;
+  state = {
+    ...state,
+    tableId: liveSession.table_id,
+    streamId: liveSession.stream_id,
+  };
   elements.tableId.textContent = liveSession.table_id;
   elements.streamId.textContent = liveSession.stream_id;
-  elements.protocolLabel.textContent = `${liveSession.playback.primary_protocol.toUpperCase()} primary`;
+  elements.protocolLabel.textContent = `${liveSession.playback.primary_protocol.toUpperCase()} playback`;
   elements.pauseButton.addEventListener("click", togglePaused);
   elements.debugButton.addEventListener("click", toggleDebug);
   window.addEventListener("resize", render);
+  setupVideoPlayback();
 
   render();
   startMockFeed();
   startTicker();
+}
+
+async function loadLiveSession() {
+  try {
+    const response = await fetch("./config/live-session.json", { cache: "no-store" });
+    if (!response.ok) return defaultLiveSession;
+    return mergeLiveSession(defaultLiveSession, await response.json());
+  } catch {
+    return defaultLiveSession;
+  }
+}
+
+function mergeLiveSession(base, override) {
+  return {
+    ...base,
+    ...override,
+    source_video: { ...base.source_video, ...(override.source_video ?? {}) },
+    playback: { ...base.playback, ...(override.playback ?? {}) },
+    realtime: { ...base.realtime, ...(override.realtime ?? {}) },
+    overlay_config: {
+      ...base.overlay_config,
+      ...(override.overlay_config ?? {}),
+      rois: {
+        ...base.overlay_config.rois,
+        ...(override.overlay_config?.rois ?? {}),
+      },
+    },
+  };
+}
+
+function setupVideoPlayback() {
+  const hlsUrl = liveSession.playback?.hls_url;
+  if (useMockVideo || !hlsUrl) {
+    elements.liveVideo.style.display = "none";
+    elements.mockVideoCanvas.style.display = "block";
+    return;
+  }
+
+  const video = elements.liveVideo;
+  elements.mockVideoCanvas.style.display = "none";
+  video.style.display = "block";
+  video.controls = true;
+  video.muted = true;
+
+  if (window.Hls?.isSupported()) {
+    const hls = new window.Hls({
+      lowLatencyMode: true,
+      backBufferLength: 30,
+    });
+    hls.loadSource(hlsUrl);
+    hls.attachMedia(video);
+    hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+      video.play().catch(() => {});
+    });
+    return;
+  }
+
+  if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    video.src = hlsUrl;
+    video.play().catch(() => {});
+  }
 }
 
 function togglePaused() {
@@ -202,6 +269,7 @@ function renderEventLog() {
 }
 
 function renderMockVideo() {
+  if (!useMockVideo) return;
   const canvas = elements.mockVideoCanvas;
   const rect = elements.videoStage.getBoundingClientRect();
   const ratio = window.devicePixelRatio || 1;
