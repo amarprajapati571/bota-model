@@ -181,6 +181,7 @@ function setupIframePlayback() {
   }
 
   elements.streamFrame.src = iframeUrl;
+  applyIframeLayout();
   elements.videoMessage.hidden = false;
   elements.videoMessage.innerHTML =
     'Embedded stream page mode is active. If this area stays blank, the provider blocks iframe embedding. <a href="' +
@@ -257,8 +258,29 @@ function render() {
   renderRecentRounds();
   renderReview();
   renderEventLog();
+  applyIframeLayout();
   renderMockVideo();
   renderOverlay();
+}
+
+function applyIframeLayout() {
+  if (useMockVideo || liveSession.playback?.primary_protocol !== "iframe") return;
+
+  const stageRect = elements.videoStage.getBoundingClientRect();
+  const source = liveSession.source_video;
+  const fit = bboxNormToCanvasPx(
+    { x1: 0, y1: 0, x2: 1, y2: 1 },
+    source,
+    { width: stageRect.width, height: stageRect.height },
+  );
+  const scale = source.width ? fit.width / source.width : 1;
+
+  elements.streamFrame.style.width = `${source.width}px`;
+  elements.streamFrame.style.height = `${source.height}px`;
+  elements.streamFrame.style.left = `${fit.x}px`;
+  elements.streamFrame.style.top = `${fit.y}px`;
+  elements.streamFrame.style.transformOrigin = "top left";
+  elements.streamFrame.style.transform = `scale(${scale})`;
 }
 
 function renderHeader() {

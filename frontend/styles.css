@@ -167,7 +167,6 @@ td,
 }
 
 #liveVideo,
-#streamFrame,
 #mockVideoCanvas,
 #overlayCanvas {
   position: absolute;
@@ -182,8 +181,8 @@ td,
 }
 
 #streamFrame {
+  position: absolute;
   display: none;
-  height: 100%;
   border: 0;
   background: #050708;
 }
