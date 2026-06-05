@@ -16,6 +16,7 @@ const elements = {
   liveVideo: document.getElementById("liveVideo"),
   mockVideoCanvas: document.getElementById("mockVideoCanvas"),
   overlayCanvas: document.getElementById("overlayCanvas"),
+  videoMessage: document.getElementById("videoMessage"),
   protocolLabel: document.getElementById("protocolLabel"),
   latencyLabel: document.getElementById("latencyLabel"),
   recentRounds: document.getElementById("recentRounds"),
@@ -150,7 +151,12 @@ function setupVideoPlayback() {
         "Video playback failed. Check that playback.hls_url is a direct .m3u8 URL and that the server allows browser/CORS access.";
     });
     video.play().catch(() => {});
+    return;
   }
+
+  elements.videoMessage.hidden = false;
+  elements.videoMessage.textContent =
+    "HLS playback is not available. Run npm install --prefix frontend so hls.js is installed, then refresh the page.";
 }
 
 function looksLikePageUrl(url) {
