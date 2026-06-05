@@ -1,0 +1,168 @@
+# Ubuntu Setup And Run Guide
+
+These commands install packages, clone the project, verify it, and run the static operator dashboard.
+
+## 1. Install System Packages
+
+```bash
+sudo apt update
+sudo apt install -y git curl nginx ffmpeg python3 python3-pip python3-venv npm
+```
+
+Install Node.js 20:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+Check versions:
+
+```bash
+python3 --version
+node --version
+npm --version
+ffmpeg -version
+```
+
+## 2. Clone The Project
+
+```bash
+sudo mkdir -p /opt/bota-model
+sudo chown -R $USER:$USER /opt/bota-model
+cd /opt/bota-model
+
+git clone https://github.com/amarprajapati571/bota-model.git app
+cd app
+```
+
+## 3. Install Python Packages
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+```
+
+For machines that will train models or run real YOLO/Torch inference:
+
+```bash
+python3 -m pip install -r requirements-ml.txt
+```
+
+## 4. Install Frontend Packages
+
+```bash
+npm install --prefix frontend
+```
+
+## 5. Verify The Project
+
+```bash
+source .venv/bin/activate
+python3 -m unittest discover -s tests
+npm test --prefix frontend
+python3 -m src.cli.replay --input examples/sample_observations.jsonl
+```
+
+## 6. Run Frontend For Development
+
+```bash
+python3 -m http.server 4173 -d frontend
+```
+
+Open:
+
+```text
+http://localhost:4173
+```
+
+On a remote server:
+
+```bash
+sudo ufw allow 4173/tcp
+```
+
+Then open:
+
+```text
+http://SERVER_IP:4173
+```
+
+## 7. Production Frontend With Nginx
+
+Create an Nginx site:
+
+```bash
+sudo nano /etc/nginx/sites-available/bota-model
+```
+
+Paste this, replacing `your-domain.com`:
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    root /opt/bota-model/app/frontend;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /hls/ {
+        alias /var/www/bota-hls/;
+        add_header Cache-Control no-cache;
+        add_header Access-Control-Allow-Origin *;
+    }
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+}
+```
+
+Enable it:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/bota-model /etc/nginx/sites-enabled/bota-model
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## 8. Example Live HLS Output
+
+Use only an authorized stream URL:
+
+```bash
+export SOURCE_STREAM_URL="https://your-authorized-live-stream-url.m3u8"
+
+sudo mkdir -p /var/www/bota-hls/MD3212
+sudo chown -R $USER:$USER /var/www/bota-hls
+
+ffmpeg -re -i "$SOURCE_STREAM_URL" \
+  -c:v copy \
+  -c:a aac \
+  -f hls \
+  -hls_time 2 \
+  -hls_list_size 6 \
+  -hls_flags delete_segments+append_list \
+  /var/www/bota-hls/MD3212/index.m3u8
+```
+
+The browser playback URL becomes:
+
+```text
+http://your-domain.com/hls/MD3212/index.m3u8
+```
+
+## Important Current Limit
+
+The repository currently includes the engine, schemas, tests, training utilities, and frontend mock live dashboard. Real live ML requires adding the service that:
+
+- reads live frames,
+- runs OCR/card detector/classifier models,
+- feeds the round engine,
+- publishes frontend WebSocket events.

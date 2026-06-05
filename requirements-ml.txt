@@ -1,0 +1,19 @@
+# Optional heavy ML/training/export packages.
+#
+# Install this only on machines that will train models or run real detector /
+# classifier inference. It can be large because Torch and YOLO dependencies are
+# substantial.
+#
+#   python3 -m pip install -r requirements-ml.txt
+
+-r requirements.txt
+
+torch>=2.3
+torchvision>=0.18
+ultralytics>=8.2
+onnx>=1.16
+onnxruntime>=1.18
+albumentations>=1.4
+pandas>=2.2
+scikit-learn>=1.5
+mlflow>=2.14

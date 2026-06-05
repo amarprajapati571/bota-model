@@ -34,6 +34,12 @@ python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 ```
 
+For ML/training machines, install the optional heavy package set:
+
+```bash
+python3 -m pip install -r requirements-ml.txt
+```
+
 Start the static operator dashboard:
 
 ```bash
@@ -41,6 +47,8 @@ python3 -m http.server 4173 -d frontend
 ```
 
 Then open `http://localhost:4173`.
+
+Ubuntu deployment commands are in [docs/ubuntu.md](/Users/amarprajapat/Documents/bota-model/docs/ubuntu.md:1).
 
 ## Training Workflow
 
